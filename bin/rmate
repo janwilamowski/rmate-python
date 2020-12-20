@@ -139,6 +139,7 @@ class Settings:
 		self.types   = []
 		self.files   = []
 		self.tmpFile = None
+		self.recursive = False
 
 		self.read_disk_settings()
 
@@ -163,6 +164,7 @@ class Settings:
 		      "  -t, --type TYPE  Treat file as having TYPE\n"
 		      "  -n, --new        Open in a new window (Sublime Text)\n"
 		      "  -f, --force      Open even if the file is not writable\n"
+		      "  -r, --recursive  Open directories recursively\n"
 		      "  -v, --verbose    Verbose logging messages\n"
 		      "  -h, --help       Show this help and exit\n"
 		      "      --version    Show version and exit\n\n"
@@ -180,25 +182,26 @@ class Settings:
 
 	def parse_cli_options(self):
 		try:
-			optlist, args = getopt.gnu_getopt(sys.argv[1:], 'hp:wl:m:t:nfv', ['host=', 'port=', 'wait', 'no-wait', 'line=',
-				'name=', 'type=', 'new', 'force', 'verbose', 'help', 'version'])
+			optlist, args = getopt.gnu_getopt(sys.argv[1:], 'hp:wl:m:t:nfrv', ['host=', 'port=', 'wait', 'no-wait', 'line=',
+				'name=', 'type=', 'new', 'force', 'recursive', 'verbose', 'help', 'version'])
 		except getopt.GetoptError:
 			self.usage()
 			sys.exit(2)
 
 		for name, value in optlist:
-			if name == '--version':           print(VERSION_STRING); sys.exit()
-			elif name in ('-h', '--help'):    self.usage(); sys.exit()
-			elif name == '--host':            self.host = value
-			elif name in ('-p', '--port'):    self.port = int(value)
-			elif name in ('-w', '--wait'):    self.wait = True
-			elif name == '--no-wait':         self.wait = False
-			elif name in ('-l', '--line'):    self.lines.append(value)
-			elif name in ('-m', '--name'):    self.names.append(value)
-			elif name in ('-t', '--type'):    self.types.append(value)
-			elif name in ('-n', '--new'):     self.new = True
-			elif name in ('-f', '--force'):   self.force = True
-			elif name in ('-v', '--verbose'): self.verbose = True
+			if name == '--version':               print(VERSION_STRING); sys.exit()
+			elif name in ('-h', '--help'):        self.usage(); sys.exit()
+			elif name == '--host':                self.host = value
+			elif name in ('-p', '--port'):        self.port = int(value)
+			elif name in ('-w', '--wait'):        self.wait = True
+			elif name == '--no-wait':             self.wait = False
+			elif name in ('-l', '--line'):        self.lines.append(value)
+			elif name in ('-m', '--name'):        self.names.append(value)
+			elif name in ('-t', '--type'):        self.types.append(value)
+			elif name in ('-n', '--new'):         self.new = True
+			elif name in ('-f', '--force'):       self.force = True
+			elif name in ('-r', '--recursive'):   self.recursive = True
+			elif name in ('-v', '--verbose'):     self.verbose = True
 
 		if '-' in sys.argv[1:] and '-' not in args: args.append('-')
 		self.files = args
@@ -259,7 +262,13 @@ def main():
 		elif path == '-' and sys.stdin.isatty():
 			sys.stderr.write('Reading from stdin, press ^D to stop\n')
 		elif os.path.isdir(path):
-			sys.stderr.write("'%s' is a directory!\n" % path)
+			if settings.recursive:
+				log("Opening %s recursively" % path)
+				for (dirpath, dirnames, filenames) in os.walk(path):
+					settings.files.extend(os.path.join(dirpath, dirname) for dirname in dirnames if dirname[0] != '.')
+					settings.files.extend(os.path.join(dirpath, filename) for filename in filenames if filename[0] != '.')
+			else:
+				sys.stderr.write("'%s' is a directory! Use -r/--recursive to open recursively.\n" % path)
 			continue
 		elif os.path.isfile(path) and not os.access(path, os.W_OK):
 			if settings.force:
