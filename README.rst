@@ -71,7 +71,9 @@ You can use ``rmate --help`` to see the usage
                        TextMate selection strings can be used
       -m, --name NAME  The display name shown in TextMate
       -t, --type TYPE  Treat file as having TYPE
+      -n, --new        Open in a new window (Sublime Text)
       -f, --force      Open even if the file is not writable
+      -r, --recursive  Open directories recursively
       -v, --verbose    Verbose logging messages
       -h, --help       Show this help and exit
           --version    Show version and exit
