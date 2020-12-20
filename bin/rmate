@@ -161,7 +161,8 @@ class Settings:
 		      "                   TextMate selection strings can be used\n"
 		      "  -m, --name NAME  The display name shown in TextMate\n"
 		      "  -t, --type TYPE  Treat file as having TYPE\n"
-		      "  -f, --force      Open even if the file is not wratable\n"
+		      "  -n, --new        Open in a new window (Sublime Text)\n"
+		      "  -f, --force      Open even if the file is not writable\n"
 		      "  -v, --verbose    Verbose logging messages\n"
 		      "  -h, --help       Show this help and exit\n"
 		      "      --version    Show version and exit\n\n"
@@ -179,7 +180,8 @@ class Settings:
 
 	def parse_cli_options(self):
 		try:
-			optlist, args = getopt.gnu_getopt(sys.argv[1:], 'hp:wl:m:t:fv', ['host=', 'port=', 'wait', 'no-wait', 'line=', 'name=', 'type=', 'force', 'verbose', 'help', 'version'])
+			optlist, args = getopt.gnu_getopt(sys.argv[1:], 'hp:wl:m:t:nfv', ['host=', 'port=', 'wait', 'no-wait', 'line=',
+				'name=', 'type=', 'new', 'force', 'verbose', 'help', 'version'])
 		except getopt.GetoptError:
 			self.usage()
 			sys.exit(2)
@@ -194,6 +196,7 @@ class Settings:
 			elif name in ('-l', '--line'):    self.lines.append(value)
 			elif name in ('-m', '--name'):    self.names.append(value)
 			elif name in ('-t', '--type'):    self.types.append(value)
+			elif name in ('-n', '--new'):     self.new = True
 			elif name in ('-f', '--force'):   self.force = True
 			elif name in ('-v', '--verbose'): self.verbose = True
 
@@ -276,6 +279,9 @@ def main():
 
 		cmd["data-on-save"] = 'yes'
 		cmd["re-activate"] = 'yes'
+		if settings.new:
+			cmd["new"] = 'yes'
+			settings.new = False
 		cmd["token"] = path
 		if path == '-':
 			cmd.read_stdin()
