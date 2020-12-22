@@ -133,11 +133,13 @@ class Settings:
 		self.port    = 52698
 		self.wait    = False
 		self.force   = False
+		self.new     = False
 		self.verbose = False
 		self.lines   = []
 		self.names   = []
 		self.types   = []
 		self.files   = []
+		self.ignore  = []
 		self.tmpFile = None
 		self.recursive = False
 
@@ -179,6 +181,7 @@ class Settings:
 			sys.stderr.write('Could not read settings from disk.\n')
 		if config.has_option('NOSECTION', 'host'): self.host = config.get('NOSECTION', 'host')
 		if config.has_option('NOSECTION', 'port'): self.port = config.get('NOSECTION', 'port')
+		if config.has_option('NOSECTION', 'ignore'): self.ignore = config.get('NOSECTION', 'ignore').split()
 
 	def parse_cli_options(self):
 		try:
@@ -263,9 +266,15 @@ def main():
 			sys.stderr.write('Reading from stdin, press ^D to stop\n')
 		elif os.path.isdir(path):
 			if settings.recursive:
+				if any(pattern in path for pattern in settings.ignore):
+					log("Ignoring folder %s" % path)
+					continue
 				log("Opening %s recursively" % path)
 				for (dirpath, dirnames, filenames) in os.walk(path):
-					settings.files.extend(os.path.join(dirpath, dirname) for dirname in dirnames if dirname[0] != '.')
+					for dirname in dirnames[:]:
+						# prune search
+						if any(pattern in dirname for pattern in settings.ignore) or dirname[0] == '.':
+							dirnames.remove(dirname)
 					settings.files.extend(os.path.join(dirpath, filename) for filename in filenames if filename[0] != '.')
 			else:
 				sys.stderr.write("'%s' is a directory! Use -r/--recursive to open recursively.\n" % path)
@@ -276,6 +285,9 @@ def main():
 			else:
 				sys.stderr.write("File %s is not writable! Use -f/--force to open anyway.\n" % path)
 				continue
+		elif any(pattern in path for pattern in settings.ignore):
+			log("Ignoring file %s" % path)
+			continue
 
 		cmd = Command("open")
 		if   len(settings.names) > idx: cmd['display-name'] = settings.names[idx]
